@@ -11,32 +11,17 @@ public class TopicService implements Service {
     public Resp process(Req req) {
         Resp rsl = null;
         String source = req.getSourceName();
-        String status;
         ConcurrentHashMap<String, ConcurrentLinkedQueue<String>> topic = map.get(source);
         if ("POST".equals(req.httpRequestType())) {
             if (topic != null) {
                 topic.forEachValue(100, v -> v.add(req.getParam()));
-                status = "=200";
-                rsl = new Resp("", status);
+                rsl = new Resp("", "200");
             }
         } else {
-            if (topic == null) {
-                map.put(source, new ConcurrentHashMap<>());
-                map.get(source).put(req.getParam(), new ConcurrentLinkedQueue<>());
-                status = "=204";
-                rsl = new Resp("", status);
-            } else {
-                ConcurrentLinkedQueue<String> queue = topic.get(req.getParam());
-                if (queue == null) {
-                    topic.put(req.getParam(), new ConcurrentLinkedQueue<>());
-                    status = "=204";
-                    rsl = new Resp("", status);
-                } else {
-                    String text = queue.poll();
-                    status = "=200";
-                    rsl = new Resp(text, status);
-                }
-            }
+            map.putIfAbsent(source, new ConcurrentHashMap<>());
+            map.get(source).putIfAbsent(req.getParam(), new ConcurrentLinkedQueue<>());
+            String text = map.get(source).get(req.getParam()).poll();
+            rsl = text == null ? new Resp("", "204") : new Resp(text, "200");
         }
         return rsl;
     }
