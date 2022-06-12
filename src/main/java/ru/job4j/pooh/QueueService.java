@@ -9,15 +9,15 @@ public class QueueService implements Service {
 
     @Override
     public Resp process(Req req) {
-        Resp rsl;
+        Resp rsl = new Resp("", "501");
         String source = req.getSourceName();
-        String status;
+        String param = req.getParam();
         if ("POST".equals(req.httpRequestType())) {
             map.putIfAbsent(source, new ConcurrentLinkedQueue<>());
-            rsl = map.get(source).add(req.getParam()) ? new Resp("", "200")
+            rsl = map.get(source).add(param) ? new Resp(param, "200")
                     : new Resp("", "204");
 
-        } else {
+        } else if ("GET".equals(req.httpRequestType())) {
             String text = map.getOrDefault(source, new ConcurrentLinkedQueue<>()).poll();
             if (text == null) {
                 rsl = new Resp("", "204");

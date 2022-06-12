@@ -4,23 +4,24 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class TopicService implements Service {
-    private ConcurrentHashMap<String, ConcurrentHashMap<String,
+    private final ConcurrentHashMap<String, ConcurrentHashMap<String,
             ConcurrentLinkedQueue<String>>> map = new ConcurrentHashMap<>();
 
     @Override
     public Resp process(Req req) {
-        Resp rsl = null;
+        Resp rsl = new Resp("", "501");
         String source = req.getSourceName();
+        String param = req.getParam();
         ConcurrentHashMap<String, ConcurrentLinkedQueue<String>> topic = map.get(source);
         if ("POST".equals(req.httpRequestType())) {
             if (topic != null) {
-                topic.forEachValue(100, v -> v.add(req.getParam()));
-                rsl = new Resp("", "200");
+                topic.forEachValue(100, v -> v.add(param));
+                rsl = new Resp(param, "200");
             }
-        } else {
+        } else if ("GET".equals(req.httpRequestType())) {
             map.putIfAbsent(source, new ConcurrentHashMap<>());
-            map.get(source).putIfAbsent(req.getParam(), new ConcurrentLinkedQueue<>());
-            String text = map.get(source).get(req.getParam()).poll();
+            map.get(source).putIfAbsent(param, new ConcurrentLinkedQueue<>());
+            String text = map.get(source).get(param).poll();
             rsl = text == null ? new Resp("", "204") : new Resp(text, "200");
         }
         return rsl;
